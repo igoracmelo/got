@@ -85,9 +85,36 @@ func TestExecForRepoIndex_MultiRepos_ShouldCommit(t *testing.T) {
 
 	result = g.ExecForRepoIndex(3, exec.Command("git", "show", "--oneline"))
 	assert.NoError(t, result.Error)
-	assert.Contains(t, result.Stdout, "hello world")
+	assert.Contains(t, string(result.Stdout), "hello world")
 	assert.Empty(t, result.Stderr)
 
 	err := os.RemoveAll(dir)
 	assert.NoError(t, err)
+}
+
+func TestExecForSingleMatch(t *testing.T) {
+	dir := initRandomRepo(t)
+
+	g := &Got{
+		Repositories: []GitRepository{
+			{"abcd"},
+			{"def"},
+			{dir},
+			{"123"},
+		},
+	}
+
+	// no matches
+	_, err := g.ExecForRepoSingleMatch("xyz", nil)
+	assert.Error(t, err)
+
+	// multiple matches
+	_, err = g.ExecForRepoSingleMatch("d", nil)
+	assert.Error(t, err)
+
+	// single match
+	result, err := g.ExecForRepoSingleMatch("test", exec.Command("ls", "-a"))
+	assert.NoError(t, err)
+	assert.NoError(t, result.Error)
+	assert.Contains(t, string(result.Stdout), ".git")
 }

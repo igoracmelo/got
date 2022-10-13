@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"os/exec"
 	"strings"
 )
@@ -15,12 +16,12 @@ type Got struct {
 }
 
 type ExecResult struct {
-	Stdout string
-	Stderr string
+	Stdout []byte
+	Stderr []byte
 	Error  error
 }
 
-func (g *Got) ExecForRepoSingleMatch(pattern string, cmd *exec.Cmd) {
+func (g *Got) ExecForRepoSingleMatch(pattern string, cmd *exec.Cmd) (*ExecResult, error) {
 	matches := []int{}
 
 	for i, repo := range g.Repositories {
@@ -30,19 +31,20 @@ func (g *Got) ExecForRepoSingleMatch(pattern string, cmd *exec.Cmd) {
 	}
 
 	if len(matches) == 0 {
-		return // TODO: no matches
+		return nil, errors.New("no matches found for pattern " + pattern) // TODO: no matches
 	}
 
 	if len(matches) > 1 {
-		return // TODO: many matches
+		return nil, errors.New("multiple matches found for pattern " + pattern) // TODO: no matches
 	}
 
 	index := matches[0]
-	g.ExecForRepoIndex(index, cmd)
+	result := g.ExecForRepoIndex(index, cmd)
+	return result, nil
 }
 
 func (g *Got) ExecForRepoIndex(index int, cmd *exec.Cmd) *ExecResult {
-	if len(g.Repositories) <= index {
+	if index >= len(g.Repositories) {
 		return nil // TODO:
 	}
 
@@ -58,8 +60,8 @@ func (g *Got) ExecForRepoIndex(index int, cmd *exec.Cmd) *ExecResult {
 	err := cmd.Run()
 
 	return &ExecResult{
-		Stdout: stdoutBuf.String(),
-		Stderr: stderrBuf.String(),
+		Stdout: stdoutBuf.Bytes(),
+		Stderr: stderrBuf.Bytes(),
 		Error:  err,
 	}
 }
