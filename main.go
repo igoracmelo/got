@@ -66,6 +66,19 @@ func (g *Got) ExecForRepoIndex(index int, cmd *exec.Cmd) *ExecResult {
 	}
 }
 
+func (g *Got) ExecForAll(cmd *exec.Cmd) chan ExecResult {
+	results := make(chan ExecResult)
+	go func() {
+		for i := range g.Repositories {
+			i := i
+			go func() {
+				results <- *g.ExecForRepoIndex(i, cmd)
+			}()
+		}
+	}()
+	return results
+}
+
 func main() {
 	g := &Got{
 		Repositories: []GitRepository{

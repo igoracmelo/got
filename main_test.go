@@ -117,4 +117,7 @@ func TestExecForSingleMatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, result.Error)
 	assert.Contains(t, string(result.Stdout), ".git")
+
+	err = os.RemoveAll(dir)
+	assert.NoError(t, err)
 }
