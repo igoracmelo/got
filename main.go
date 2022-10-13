@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+	"sync"
 )
 
 type GitRepository struct {
@@ -39,11 +40,11 @@ func (g *Got) ExecForRepoSingleMatch(pattern string, cmd *exec.Cmd) (*ExecResult
 	}
 
 	index := matches[0]
-	result := g.ExecForRepoIndex(index, cmd)
+	result := g.ExecForRepoIndex(index, *cmd)
 	return result, nil
 }
 
-func (g *Got) ExecForRepoIndex(index int, cmd *exec.Cmd) *ExecResult {
+func (g *Got) ExecForRepoIndex(index int, cmd exec.Cmd) *ExecResult {
 	if index >= len(g.Repositories) {
 		return nil // TODO:
 	}
@@ -66,16 +67,25 @@ func (g *Got) ExecForRepoIndex(index int, cmd *exec.Cmd) *ExecResult {
 	}
 }
 
-func (g *Got) ExecForAll(cmd *exec.Cmd) chan ExecResult {
+func (g *Got) ExecForAll(cmd exec.Cmd) chan ExecResult {
 	results := make(chan ExecResult)
+
 	go func() {
+		wg := new(sync.WaitGroup)
+		wg.Add(len(g.Repositories))
+
 		for i := range g.Repositories {
 			i := i
 			go func() {
 				results <- *g.ExecForRepoIndex(i, cmd)
+				wg.Done()
 			}()
 		}
+
+		wg.Wait()
+		close(results)
 	}()
+
 	return results
 }
 
