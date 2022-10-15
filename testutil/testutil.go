@@ -21,3 +21,17 @@ func InitRandomRepo(t *testing.T) string {
 
 	return dir
 }
+
+func InitRandomRepoPrefix(t *testing.T, prefix string) string {
+	dir, err := os.MkdirTemp("", prefix)
+	assert.NoError(t, err)
+
+	cmd := exec.Command("git", "init")
+	cmd.Dir = dir
+
+	outBytes, err := cmd.CombinedOutput()
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBytes), "Initialized empty")
+
+	return dir
+}
