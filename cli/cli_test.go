@@ -4,33 +4,31 @@ import (
 	"os"
 	"testing"
 
-	"github.com/igoracmelo/got/got"
+	"github.com/igoracmelo/got/core"
 	"github.com/igoracmelo/got/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseInstruction(t *testing.T) {
-	dir := testutil.InitRandomRepo(t)
+func TestArgsToInstruction(t *testing.T) {
+	first := testutil.InitRandomRepoPrefix(t, "first")
+	sec := testutil.InitRandomRepoPrefix(t, "sec")
+	defer os.RemoveAll(first)
+	defer os.RemoveAll(sec)
 
-	g := &got.Got{}
-	instruction := ParseInstruction("got sh repo ls", g)
-	assert.Empty(t, instruction.ReposIndexes)
-	assert.Equal(t, instruction.Command.Args, []string{"ls"})
-
-	err := os.RemoveAll(dir)
-	assert.NoError(t, err)
-}
-
-func TestParseAndExec(t *testing.T) {
-	dir := testutil.InitRandomRepo(t)
-
-	g := &got.Got{
-		Repositories: []got.GitRepository{
-			{"client"},
-			{"server"},
-			{dir},
+	g := &core.Got{
+		Repositories: []core.GitRepository{
+			{Dir: first},
+			{Dir: sec},
 		},
 	}
 
-	ParseAndExec("got sh test ls", g)
+	instruction := ArgsToInstruction([]string{"got", "as", "first", "status"}, g)
+	assert.Equal(t, "git", instruction.Command.Args[0])
+	assert.Contains(t, instruction.Command.Args, "status")
+	assert.Len(t, instruction.ReposIndexes, 1)
+
+	instruction = ArgsToInstruction([]string{"got", "pull"}, g)
+	assert.Equal(t, "git", instruction.Command.Args[0])
+	assert.Contains(t, instruction.Command.Args, "pull")
+	assert.Len(t, instruction.ReposIndexes, 2)
 }

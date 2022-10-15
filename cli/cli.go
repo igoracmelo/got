@@ -1,33 +1,32 @@
 package cli
 
 import (
-	"fmt"
 	"os/exec"
-	"regexp"
 
-	"github.com/igoracmelo/got/got"
+	"github.com/igoracmelo/got/core"
 )
 
-// type GotParser struct{}
+func ArgsToInstruction(args []string, g *core.Got) *core.GotInstruction {
+	cmdName := args[1]
 
-func ParseInstruction(cmd string, g *got.Got) *got.GotInstruction {
-	r := regexp.MustCompile(`sh (.*?) (.*)`)
-
-	matches := r.FindAllStringSubmatch(cmd, -1)[0]
-	repoPattern := matches[1]
-	subcommand := matches[2]
-
-	fmt.Println(repoPattern)
-	fmt.Println(subcommand)
-
-	indexes := g.FindReposLike(repoPattern)
-
-	return &got.GotInstruction{
-		Command:      *exec.Command(subcommand),
-		ReposIndexes: indexes,
+	instruction := new(core.GotInstruction)
+	gitArgs := []string{
+		"-c", "color.status=always",
+		"-c", "color.ui=always",
 	}
-}
 
-func ParseAndExec(cmd string, got *got.Got) error {
-	return nil
+	if cmdName == "as" {
+		pattern := args[2]
+		instruction.ReposIndexes = g.FindReposLike(pattern)
+		gitArgs = append(gitArgs, args[3:]...)
+		instruction.Command = *exec.Command("git", gitArgs...)
+	} else {
+		gitArgs = append(gitArgs, args[1:]...)
+		instruction.Command = *exec.Command("git", gitArgs...)
+		for i := range g.Repositories {
+			instruction.ReposIndexes = append(instruction.ReposIndexes, i)
+		}
+	}
+
+	return instruction
 }
